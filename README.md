@@ -4,7 +4,7 @@
 
 Pixel Trek is a native Windows cursor odometer. Its compact dashboard shows live speed and acceleration gauges, distance, physical key taps and mouse clicks. Explore five virtual city trails in **Treks**, or inspect your last 30 calendar days in **Graph**.
 
-![Pixel Trek dashboard with illustrative totals](assets/widget.png)
+![Pixel Trek dashboard with illustrative totals](assets/dashboard.png)
 
 Windows 10/11 · C# / WinForms · .NET Framework 4.8 · MIT license
 
