@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.2 — Dashboard, Treks and Graph
+
+- Native Dashboard startup with matching speed and acceleration gauges.
+- Monotonic display interpolation and measured-sample wake-up; bounded active/idle refresh.
+- Treks destination with five city routes, lap percentage, next stop and all badges.
+- Thirty-date local Daily/Cumulative Graph with independent normalization, series toggles and fixed exact values.
+- Missing-date and empty-history handling; bounded chart arrays and midnight rollover.
+- New milestone strip with launch/scale replay suppression; short header tooltips.
+- Preserved input formulas, compatible totals, compact/tray modes, history and exports.
+- Expanded checks and refreshed native screenshots/documentation.
+
 ## 0.3.1 - Trek edition
 
 - Returned to one playful Trek home. Removed the analytics engine, its controls and the Flow/Loops/Signals/Context/Privacy tabs from the executable and current source.

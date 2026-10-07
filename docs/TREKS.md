@@ -1,6 +1,6 @@
 # Five city treks
 
-New York is the default. Sydney, London, Moscow and Paris are the other native dropdown choices. There are six named nodes on each illustrated trail; no unlabeled destination dots.
+Open **Treks** from the Dashboard to select a city. New York is the default. Sydney, London, Moscow and Paris are the other native dropdown choices. There are six named nodes on each illustrated trail; no unlabeled destination dots.
 
 | City | Origin | 20 m street checkpoint | Later landmarks |
 |---|---|---|---|

@@ -1,37 +1,77 @@
-# Measurement notes - Trek edition
+# Measurement notes — 0.3.2
 
-## Distance and counts
+## Counts and saved data
 
-Mouse travel sums Euclidean distances between observed screen cursor positions, in pixels. The first point after startup/resume is a baseline, not a distance. Injected mouse events are excluded and update/reset the baseline. Physical key-down transitions count once until release; device and extended scan-code state distinguish keyboards/keys. Modifier presses count. Click-down events count left, middle, right and extra buttons; releases do not add clicks.
+Mouse travel sums Euclidean distances between observed cursor positions in pixels.
+The first position after startup/reset is a baseline. Injected mouse events are
+excluded and update/reset the baseline. Fresh physical key-down transitions count
+once until release, with per-device and extended scan-code held-state suppression.
+Click-down events count left, right, middle and extra buttons; releases do not count.
 
-Pointer acceleration settings, programmatic jumps and pointer-lock games can change observed cursor behavior. This is not a sensor for physical mouse/trackpad travel. Secure desktops and elevated contexts can limit event coverage.
-
-## Periods and saving
-
-Today uses local calendar dates. Last hour is the rolling set of one-second buckets whose timestamps are within the preceding 3,600 seconds; exact boundary buckets expire. Lifetime totals stay independent. Daily history retains 366 active dates; second history retains at most 3,600 buckets. Old peak fields default to zero without losing counts.
-
-Every ten seconds and on orderly quit/session transitions the tracker snapshot is written atomically with a previous-save backup. A valid backup can recover a corrupt primary; both unreadable files are protected from automatic overwrite. Unsaved activity since the latest successful checkpoint can be lost on sudden power loss. Restart expires stale rolling-hour buckets, preserving lifetime totals. Basic save version remains 1; new city preference is a string, with New York as the default when absent or invalid.
+Today uses local calendar dates. Last hour uses one-second buckets strictly newer
+than now minus 3600 seconds. Daily history retains 366 active dates; lifetime totals
+remain independent. Atomic saves run every ten seconds and on orderly quit/session
+transitions. A previous-save backup supports recovery. Unreadable saves are protected.
+The save format stays version 1, with compatible defaults for older preferences.
 
 ## Screen equivalents
 
-`km = pixels * 0.0254 / validPPI / 1000`. Default PPI is 96. The optional monitor calculator uses sqrt(widthPx^2 + heightPx^2) / diagonalInches. The one selected scale applies to all history and monitors, so mixed physical pixel densities are not individually calibrated. Changing PPI recalculates equivalent labels without changing canonical pixels.
+km = pixels × 0.0254 / validPPI / 1000. Speed and acceleration use the same conversion
+without dividing by 1000. The default scale is 96 PPI. One scale applies to all saved
+history and monitors; changing it does not change canonical pixels. This describes
+cursor travel on screen, not physical mouse or trackpad travel.
 
-The route consumes lifetime km, while Today/Last hour/Lifetime selects the three count cards. Every city uses the same lifetime value; each trail has its own length and virtual laps. See TREKS.md for the 20 m checkpoint, approximate geographic anchors and schematic curves.
+## Measurement latency
 
-## Motion
+The native input thread samples accumulated path distance and displacement around
+every 100 ms while moving or settling. Kinematics uses monotonic elapsed time and a
+120 ms exponential filter. Path speed uses travel per elapsed time; velocity uses
+displacement per elapsed time. Acceleration is the filtered magnitude of a velocity
+difference per elapsed time, including turns and braking. The verified formulas
+are preserved. Long gaps and resets discard stale motion; stationary values settle
+to exact zero. Peaks use maxima and do not inflate input counts.
 
-The existing native input/motion engine samples accumulated travel and two-dimensional cursor deltas at approximately 100 ms while active. Path speed comes from travelled distance per elapsed time; velocity comes from displacement per elapsed time. Exponential smoothing reduces event jitter. Acceleration is the smoothed magnitude of a velocity difference divided by elapsed time, so braking and direction changes contribute. This is descriptive cursor physics, not the operating system's mouse-acceleration setting.
+## Display latency and resources
 
-A stationary cursor settles to zero; pause/resume and long gaps reset stale motion. Today/hour/lifetime peak rates use maxima, not sums. The pulse/bloom display is decorative and bounded; its saturated visual scale does not cap the numeric rates. Rendering uses bounded sampled polylines and fixed-radius shapes; no small-angle dynamic GDI+ arc is used.
+The earlier 250 ms display poll could add delay after measurement. Measured samples
+now post a bounded UI wake-up while the dashboard is visible. The display requests
+30 ms ticks during motion or settling; actual cadence depends on Windows scheduling.
+Display interpolation uses monotonic elapsed time, with a 35 ms attack and 75 ms
+decay. It is independent of input event frequency. Numeral and needle share the
+same interpolated value; the numeric rate is not capped by the dial range.
 
-## Privacy and resource bounds
+Idle timer ticks return to 250 ms, with quiet paints at most once per second.
+Hidden/paused/minimized states suppress visual animation. Historical aggregates are
+not scanned per paint: a current snapshot is read at most about 10 times per second
+while active, and graph history is snapshotted only on entry.
 
-There is no app/context/calendar/focus/workflow/strain engine in this edition. Old analytics flags are ignored by preferences deserialization; old insight files are never opened. No historical positions or ordered keys are retained. Only the previous cursor point, motion accumulators and held-key suppression state are transient inputs.
+Ticks and dial arc geometry are precomputed. Changing arcs use bounded sampled
+polylines, retaining the small-angle GDI+ crash fix. Temporary pens/brushes are
+disposed and scaled control fonts are reused. Source includes an opt-in isolated
+resource fixture; results are observations, not a memory ceiling.
 
-Five offline route definitions and five precomputed 41-point curve legs are fixed. Store/render work is outside native input callbacks. Idle animation stops; the visible widget refreshes its clock-based display at most once per second when idle. Compact/tray modes retain tracking. There are no network or browser dependencies.
+## Graph
 
-## Validation
+The chart holds exactly 30 consecutive local dates, zero-filled from existing daily
+buckets. Today is partial and updates at most once per second. Date rollover shifts
+the bounded window, retaining yesterday and dropping expired points.
 
-The source self-test covers native event routing, injected events, held-key repeats, pause, date/hour boundaries, peaks, old saves, atomic recovery, bounded history, the 96-PPI formula, steady velocity, braking/direction changes and rendering at five display scales. Trek checks cover all five routes, exact 20 m thresholds, repeated laps, length-based curve progress, actual native selector persistence, unchanged counters, ignored v0.3.0 opt-ins and absence of analytics types from the executable. See test-results.txt and VERIFICATION.txt.
+Daily values are bucket totals. Cumulative values start at zero before the first
+displayed date and sum only that 30-day window. Each series uses its own window
+maximum for a shared labelled 0–100% relative axis. Zero maxima map to zero safely.
+Straight segments and rounded joins preserve sample values without overshoot.
+Distinct colours, line styles and markers identify the series. Exact selected
+counts/equivalents and the pixel amount appear in a fixed strip.
 
-Native previews are illustrative. Resource samples are short-run observations, not guarantees. Physical devices, real mixed-DPI desktops, secure contexts, power-loss recovery and long-term resource use require further testing on the user's hardware. GitHub CI has not run on GitHub yet.
+## Milestones and privacy
+
+The milestone observer starts from loaded totals. Only thresholds crossed since
+the previous observation produce a brief celebration. Both distance observations
+use the current PPI, so changing scale alone crosses nothing. City changes do not
+reset counts or replay badges. Large jumps summarize the highest crossed tier per
+category, avoiding an unbounded celebration queue.
+
+No raw event histories, ordered keys, historical positions, app/context/calendar
+information, analytics or network dependencies are introduced. The source checks
+cover input routing, persistence, motion formulas, dates, normalization, crossings,
+navigation and rendering scales. See test-results.txt and VERIFICATION.txt.

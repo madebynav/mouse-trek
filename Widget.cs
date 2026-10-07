@@ -90,6 +90,23 @@ namespace PixelTrek
         readonly ToolTip tips = new ToolTip();
         readonly Button shrink, hide, options;
         readonly Button[] periods=new Button[3];
+        readonly Button treks, graphButton, back, badges, daily, cumulativeButton;
+        readonly Button[] seriesButtons=new Button[3];
+        readonly bool[] seriesShown={true,true,true};
+        readonly GaugeMotion gauges=new GaugeMotion();
+        readonly System.Diagnostics.Stopwatch clock=System.Diagnostics.Stopwatch.StartNew();
+        readonly MilestoneNotice milestones;
+        GraphWindow graph;
+        GraphSeries graphSeries;
+        int page, selectedDate=29;
+        bool cumulative;
+        double lastFrame, lastSnapshot=-1, lastGraph=-1, noticeUntil;
+        string notice;
+        volatile bool renderVisible;
+        int samplePending;
+        internal long PaintCount, FastTickCount, SnapshotCount;
+        internal int CurrentPage {get{return page;}}
+        internal int RenderInterval {get{return redraw.Interval;}}
         readonly ComboBox cities;
         Font cityFont;
         internal ComboBox CitySelector { get { return cities; } }
@@ -130,14 +147,23 @@ namespace PixelTrek
             cities.DrawItem+=delegate(object sender,DrawItemEventArgs e){if(e.Index<0)return;bool selected=(e.State&DrawItemState.Selected)!=0;using(var brush=new SolidBrush(selected?Color.FromArgb(50,62,83):Art.Panel))e.Graphics.FillRectangle(brush,e.Bounds);TextRenderer.DrawText(e.Graphics,cities.Items[e.Index].ToString(),cities.Font,new Rectangle(e.Bounds.X+8,e.Bounds.Y,e.Bounds.Width-10,e.Bounds.Height),selected?Art.Cyan:Art.White,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);e.DrawFocusRectangle();};
             cities.SelectedIndexChanged+=delegate {var city=cities.SelectedItem as CityTrek;if(city==null)return;lock(preferenceGate)prefs.CityId=city.Id;Invalidate();SaveNow();};
             Controls.Add(cities);
-            tips.SetToolTip(cities,"Choose a city. Your lifetime totals stay the same; each city has its own illustrated route.");
-            tips.SetToolTip(this,"Route: approximate straight-line landmark legs, with a playful 20 m street checkpoint. Screen equivalents, not actual walking directions. Right-click for history, scale and controls.");
+            tips.AutoPopDelay=1200;tips.InitialDelay=600;tips.ReshowDelay=600;
+            treks=ActionButton("Treks",delegate{Navigate(1);});graphButton=ActionButton("Graph",delegate{Navigate(2);});
+            back=ActionButton("\u2039 Back",delegate{Navigate(0);});
+            badges=ActionButton("All badges",delegate{using(var detail=new DetailForm(tracker.Read(DateTime.UtcNow,true),prefs.PixelsPerInch,true)){detail.Icon=Icon;detail.ShowDialog(this);}});
+            daily=ActionButton("Daily",delegate{cumulative=false;RefreshSeries();LayoutWidget();});
+            cumulativeButton=ActionButton("Cumulative",delegate{cumulative=true;RefreshSeries();LayoutWidget();});
+            string[] legends={"\u25cf Distance","\u25a0 Key taps","\u25b2 Clicks"};Color[] legendColors={Art.Cyan,Art.Purple,Art.Peach};
+            for(int i=0;i<3;i++){int s=i;seriesButtons[i]=ActionButton(legends[i],delegate{seriesShown[s]=!seriesShown[s];LayoutWidget();});seriesButtons[i].ForeColor=legendColors[i];}
+            KeyPreview=true;
             LayoutWidget();
             Rectangle area = Screen.PrimaryScreen.WorkingArea;
             Location = prefs.HasPosition ? new Point(prefs.X, prefs.Y) : new Point(area.Right - Width - 18, area.Bottom - Height - 18);
             ClampPosition();
             view = tracker.Read(DateTime.UtcNow, false);
+            milestones=new MilestoneNotice(view.Total);
             redraw.Tick += Tick; redraw.Start();
+            if(input!=null)input.RatesSampled+=RatesSampled;
             saver = new System.Threading.Timer(delegate { SaveNow(); }, null, 10000, 10000);
             SystemEvents.PowerModeChanged += PowerChanged;
             SystemEvents.DisplaySettingsChanged += DisplayChanged;
@@ -147,48 +173,98 @@ namespace PixelTrek
         protected override CreateParams CreateParams { get { var cp = base.CreateParams; cp.ExStyle |= 0x80; return cp; } }
         Button HeaderButton(string text, string hint, Action action)
         {
-            var b = new Button { Text = text, FlatStyle = FlatStyle.Flat, ForeColor = Art.Muted, BackColor = Art.Background, TabStop = true, AccessibleName = hint, Font = new Font("Segoe UI", 11, FontStyle.Bold) };
+            var b = new Button { Text = text, FlatStyle = FlatStyle.Flat, ForeColor = Art.Muted, BackColor = Art.Background, TabStop = true, AccessibleName = hint, Font = Art.Bold };
             b.FlatAppearance.BorderSize = 0; b.FlatAppearance.MouseOverBackColor = Art.Panel; b.Click += delegate { action(); }; tips.SetToolTip(b, hint); Controls.Add(b); return b;
         }
         void LayoutWidget()
         {
+            if(Math.Abs(buttonFont.Size-8*scale)>.01f)
+            {var oldButton=buttonFont;var oldHeader=headerFont;buttonFont=new Font("Segoe UI",8*scale);headerFont=new Font("Segoe UI",10*scale,FontStyle.Bold);if(oldButton!=Art.Small)oldButton.Dispose();if(oldHeader!=Art.Bold)oldHeader.Dispose();}
             ClientSize=new Size((int)Math.Round(Dashboard.Width*scale),(int)Math.Round((prefs.Compact?Dashboard.CompactHeight:Dashboard.Height)*scale));
             var buttons=new [] {shrink,hide,options};for(int i=0;i<buttons.Length;i++)buttons[i].Bounds=BoundsAt(481+i*30,7,28,26);
-            cities.Visible=!prefs.Compact;cities.Bounds=BoundsAt(338,14,137,29);cities.ItemHeight=Math.Max(20,(int)(24*scale));
+            cities.Visible=!prefs.Compact&&page==1;cities.Bounds=BoundsAt(355,62,200,29);cities.ItemHeight=Math.Max(20,(int)(24*scale));
             if(cityFont==null||Math.Abs(cityFont.Size-10*scale)>.01f){var previous=cityFont;cityFont=new Font("Segoe UI",10*scale,FontStyle.Bold);cities.Font=cityFont;if(previous!=null)previous.Dispose();}
-            for(int i=0;i<3;i++){periods[i].Visible=!prefs.Compact;periods[i].Bounds=BoundsAt(18+i*184,391,171,24);periods[i].ForeColor=prefs.SelectedPeriod==i?Art.Cyan:Art.Muted;periods[i].BackColor=prefs.SelectedPeriod==i?Color.FromArgb(36,50,63):Art.Panel;}
+            treks.Visible=graphButton.Visible=!prefs.Compact;treks.Bounds=BoundsAt(322,9,72,28);graphButton.Bounds=BoundsAt(402,9,72,28);
+            treks.ForeColor=page==1?Art.Cyan:Art.White;graphButton.ForeColor=page==2?Art.Cyan:Art.White;
+            back.Visible=!prefs.Compact&&page!=0;back.Bounds=BoundsAt(18,62,65,29);
+            badges.Visible=!prefs.Compact&&page==1;badges.Bounds=BoundsAt(240,62,105,29);
+            daily.Visible=cumulativeButton.Visible=!prefs.Compact&&page==2;daily.Bounds=BoundsAt(333,62,74,29);cumulativeButton.Bounds=BoundsAt(415,62,140,29);
+            daily.ForeColor=!cumulative?Art.Cyan:Art.Muted;cumulativeButton.ForeColor=cumulative?Art.Cyan:Art.Muted;
+            Color[] colors={Art.Cyan,Art.Purple,Art.Peach};
+            for(int i=0;i<3;i++)
+            {
+                periods[i].Visible=!prefs.Compact&&page==0;periods[i].Bounds=BoundsAt(18+i*184,372,171,24);periods[i].ForeColor=prefs.SelectedPeriod==i?Art.Cyan:Art.Muted;periods[i].BackColor=prefs.SelectedPeriod==i?Color.FromArgb(36,50,63):Art.Panel;
+                seriesButtons[i].Visible=!prefs.Compact&&page==2;seriesButtons[i].Bounds=BoundsAt(18+i*184,102,171,26);seriesButtons[i].ForeColor=seriesShown[i]?colors[i]:Art.Muted;
+                seriesButtons[i].AccessibleDescription=seriesShown[i]?"Series shown":"Series hidden";
+            }
+            foreach(Control c in Controls)if(c is Button)c.Font=(c==shrink||c==hide||c==options)?headerFont:buttonFont;
             Invalidate();
         }
+        Font buttonFont=Art.Small,headerFont=Art.Bold;
         Rectangle BoundsAt(int x,int y,int width,int height){return new Rectangle((int)(x*scale),(int)(y*scale),(int)(width*scale),(int)(height*scale));}
         Button ActionButton(string text,Action action){var b=new Button {Text=text,FlatStyle=FlatStyle.Flat,BackColor=Art.Panel,ForeColor=Art.White,Font=Art.Small,AccessibleName=text};b.FlatAppearance.BorderColor=Color.FromArgb(57,70,92);b.Click+=delegate{action();};Controls.Add(b);return b;}
 
         void Tick(object sender, EventArgs e)
         {
-            DateTime now = DateTime.UtcNow; long second = Tracker.UnixSecond(now);
-            View fresh = tracker.Read(now, false);
-            bool active = fresh.Revision != lastRevision;
-            if (active) lastActive = now;
-            bool animate = prefs.Animations && !fresh.Paused && now - lastActive < TimeSpan.FromSeconds(2);
-            if (Visible && (active || animate || second != lastSecond))
+            DateTime now=DateTime.UtcNow;double elapsed=clock.Elapsed.TotalSeconds,dt=elapsed-lastFrame;lastFrame=elapsed;
+            bool visible=Visible&&WindowState!=FormWindowState.Minimized;
+            // Aggregate reads run at most 10 Hz during motion, 4 Hz at idle. Paints never scan history.
+            bool changed=false;
+            if(elapsed-lastSnapshot>=.095)
             {
-                view = fresh; if (animate) frame++;
+                lastSnapshot=elapsed;SnapshotCount++;View fresh=tracker.Read(now,false);changed=fresh.Revision!=lastRevision;
+                if(changed)lastActive=now;view=fresh;lastRevision=fresh.Revision;
+                string crossed=milestones.Observe(fresh.Total,prefs.PixelsPerInch);
+                if(!String.IsNullOrEmpty(crossed)){notice=crossed;noticeUntil=elapsed+6;}
+                if(graph!=null&&page==2&&elapsed-lastGraph>=1){lastGraph=elapsed;graph.UpdateToday(now.ToLocalTime(),fresh.Today);RefreshSeries();changed=true;}
                 AccessibleDescription = "Today: " + Math.Floor(view.Today.Pixels).ToString("N0") + " pixels, " + view.Today.Keys + " key presses, " + view.Today.Clicks + " clicks. " + (view.Paused ? "Paused." : "Tracking locally.");
-                Invalidate();
+                string trayText=fresh.Paused?"Pixel Trek - paused":"Pixel Trek - tracking locally";if(tray.Text!=trayText)tray.Text=trayText;
             }
-            lastRevision = fresh.Revision; lastSecond = second;
-            if (tray.Text != (fresh.Paused ? "Pixel Trek - paused" : "Pixel Trek - tracking locally")) tray.Text = fresh.Paused ? "Pixel Trek - paused" : "Pixel Trek - tracking locally";
+            if(notice!=null&&elapsed>noticeUntil){notice=null;changed=true;}
+            LiveRates target=input!=null?input.Live.Read():new LiveRates();
+            bool allowed=visible&&!tracker.Paused&&!locked&&!sleeping;
+            bool moving=allowed&&(target.Speed>0||target.Acceleration>0);
+            bool settling=false;
+            if(allowed)settling=gauges.Advance(target,dt);else gauges.Reset();
+            bool animate=allowed&&prefs.Animations&&now-lastActive<TimeSpan.FromSeconds(2);
+            redraw.Interval=allowed&&(moving||settling)&&(page==0||prefs.Compact)?30:250;
+            if(redraw.Interval==30)FastTickCount++;
+            long second=Tracker.UnixSecond(now);
+            if(visible&&(changed||settling||moving||second!=lastSecond))
+            {if(animate)frame=(int)(elapsed*4);Invalidate();}
+            lastSecond=second;
         }
+        void RatesSampled()
+        {
+            // Wake the display on a measured sample, rather than waiting for the 250 ms idle poll.
+            if(!renderVisible||IsDisposed||!IsHandleCreated||System.Threading.Interlocked.CompareExchange(ref samplePending,1,0)!=0)return;
+            try{BeginInvoke((Action)delegate{System.Threading.Interlocked.Exchange(ref samplePending,0);if(!IsDisposed&&redraw.Interval!=30&&(page==0||prefs.Compact))Tick(null,EventArgs.Empty);});}
+            catch(InvalidOperationException){System.Threading.Interlocked.Exchange(ref samplePending,0);}
+        }
+        internal void Navigate(int destination)
+        {
+            page=Math.Max(0,Math.Min(2,destination));
+            if(page==2){DateTime now=DateTime.UtcNow;View full=tracker.Read(now,true);graph=new GraphWindow(full.Days,now.ToLocalTime());graph.UpdateToday(now.ToLocalTime(),full.Today);selectedDate=29;RefreshSeries();lastGraph=clock.Elapsed.TotalSeconds;}
+            else{graph=null;graphSeries=null;}
+            LayoutWidget();Focus();
+        }
+        void RefreshSeries(){if(graph!=null)graphSeries=graph.Series(cumulative,prefs.PixelsPerInch);Invalidate();}
+        internal void PreviewRates(LiveRates rates){gauges.Value=rates;}
+        internal void BenchmarkPaint(Graphics graphics){graphics.ResetTransform();OnPaint(new PaintEventArgs(graphics,ClientRectangle));}
+        protected override void OnVisibleChanged(EventArgs e)
+        {base.OnVisibleChanged(e);renderVisible=Visible;if(!Visible){gauges.Reset();redraw.Interval=250;}lastFrame=clock.Elapsed.TotalSeconds;}
         protected override void OnPaint(PaintEventArgs e)
         {
+            PaintCount++;
             e.Graphics.ScaleTransform(scale, scale);
             string status = !String.IsNullOrEmpty(store.Error) ? "SAVE!" : input != null && input.Error != null ? "INPUT!" : tracker.Paused ? "PAUSED" : locked || sleeping ? "IDLE" : "LIVE";
-            Dashboard.Render(e.Graphics, view ?? tracker.Read(DateTime.UtcNow, false), prefs.Compact, frame, !prefs.Animations || tracker.Paused || DateTime.UtcNow - lastActive > TimeSpan.FromSeconds(2), status, prefs.PixelsPerInch, input != null ? input.Live.Read() : new LiveRates(),prefs.SelectedPeriod,prefs.CityId);
+            Dashboard.Render(e.Graphics, view ?? tracker.Read(DateTime.UtcNow, false), prefs.Compact, frame, !prefs.Animations || tracker.Paused || DateTime.UtcNow - lastActive > TimeSpan.FromSeconds(2), status, prefs.PixelsPerInch,gauges.Value,prefs.SelectedPeriod,prefs.CityId,page,notice,graph,graphSeries,selectedDate,cumulative,seriesShown);
         }
         void BuildMenu()
         {
             menu.Items.Clear();
             AddMenu("Show widget", false, RestoreWidget);
-            AddMenu(tracker.Paused ? "Resume counting" : "Pause counting", tracker.Paused, delegate { tracker.Paused = !tracker.Paused; if (input != null) input.Reset(); Invalidate(); SaveNow(); });
+            AddMenu(tracker.Paused ? "Resume counting" : "Pause counting", tracker.Paused, delegate { tracker.Paused = !tracker.Paused;gauges.Reset();redraw.Interval=250; if (input != null) input.Reset(); Invalidate(); SaveNow(); });
             menu.Items.Add(new ToolStripSeparator());
             AddMenu("Compact strip", prefs.Compact, delegate { lock (preferenceGate) prefs.Compact = !prefs.Compact; LayoutWidget(); ClampPosition(); SaveNow(); });
             AddMenu("Always on top", prefs.OnTop, delegate { lock (preferenceGate) prefs.OnTop = !prefs.OnTop; TopMost = prefs.OnTop; SaveNow(); });
@@ -217,7 +293,7 @@ namespace PixelTrek
         void ScaleSettings()
         {
             using (var dialog = new ScaleForm(prefs.PixelsPerInch))
-                if (dialog.ShowDialog(this) == DialogResult.OK) { lock (preferenceGate) prefs.PixelsPerInch = dialog.PixelsPerInch; SaveNow(); Invalidate(); }
+                if (dialog.ShowDialog(this) == DialogResult.OK) { lock (preferenceGate) prefs.PixelsPerInch = dialog.PixelsPerInch;notice=null;RefreshSeries(); SaveNow(); Invalidate(); }
         }
         void ExportCsv()
         {
@@ -236,7 +312,7 @@ namespace PixelTrek
         }
         void About()
         {
-            MessageBox.Show(this,"Pixel Trek / 0.3.1 - Trek edition\nA tiny desktop odometer. Five cities, one curious mouse.\n\nCounts cursor pixels, physical key taps and mouse clicks while running. No typed text, app names, calendar data, screenshots or cursor trails are stored. No network requests.\n\nKm, m/s and m/s\u00b2 are screen equivalents at "+DistanceScale.ValidPpi(prefs.PixelsPerInch).ToString("0.#")+" PPI. The city trail is a schematic: a 20 m street checkpoint followed by approximate straight-line landmark legs, not road routing. Switching cities maps your existing lifetime total onto the new route. Completed routes begin another lap.\n\nLast hour uses one-second summaries. Held-key repeats are ignored.\n\nData: "+store.DirectoryPath+"\n\nQuit before replacing app files to update. Programmatic jumps and cursor-lock games can affect observed distance. Secure desktops are outside tracking scope.","About Pixel Trek",MessageBoxButtons.OK,MessageBoxIcon.Information);
+            MessageBox.Show(this,"Pixel Trek / 0.3.2 - Dashboard, Treks and Graph\nA tiny desktop odometer. Five cities, one curious mouse.\n\nCounts cursor pixels, physical key taps and mouse clicks while running. No typed text, app names, calendar data, screenshots or cursor trails are stored. No network requests.\n\nKm, m/s and m/s\u00b2 are screen equivalents at "+DistanceScale.ValidPpi(prefs.PixelsPerInch).ToString("0.#")+" PPI. The city trail is a schematic: a 20 m street checkpoint followed by approximate straight-line landmark legs, not road routing. Switching cities maps your existing lifetime total onto the new route. Completed routes begin another lap.\n\nLast hour uses one-second summaries. Held-key repeats are ignored.\n\nData: "+store.DirectoryPath+"\n\nQuit before replacing app files to update. Programmatic jumps and cursor-lock games can affect observed distance. Secure desktops are outside tracking scope.","About Pixel Trek",MessageBoxButtons.OK,MessageBoxIcon.Information);
         }
         public bool SaveNow()
         {
@@ -265,7 +341,16 @@ namespace PixelTrek
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
+            if(page==2&&!prefs.Compact&&e.Button==MouseButtons.Left&&Dashboard.Plot.Contains(e.X/scale,e.Y/scale))
+            {selectedDate=Math.Max(0,Math.Min(29,(int)Math.Round((e.X/scale-Dashboard.Plot.X)/Dashboard.Plot.Width*29)));Focus();Invalidate();return;}
             if (e.Button == MouseButtons.Left && e.Y < 55 * scale) { dragging = true; dragOrigin = Cursor.Position; windowOrigin = Location; Capture = true; }
+        }
+        protected override bool ProcessCmdKey(ref Message msg,Keys keyData)
+        {
+            if(page==2&&!prefs.Compact&&(keyData==Keys.Left||keyData==Keys.Right||keyData==Keys.Home||keyData==Keys.End))
+            {selectedDate=keyData==Keys.Home?0:keyData==Keys.End?29:Math.Max(0,Math.Min(29,selectedDate+(keyData==Keys.Left?-1:1)));Invalidate();return true;}
+            if(page!=0&&keyData==Keys.Escape){Navigate(0);return true;}
+            return base.ProcessCmdKey(ref msg,keyData);
         }
         protected override void OnMouseMove(MouseEventArgs e) { base.OnMouseMove(e); if (dragging) Location = new Point(windowOrigin.X + Cursor.Position.X - dragOrigin.X, windowOrigin.Y + Cursor.Position.Y - dragOrigin.Y); }
         protected override void OnMouseUp(MouseEventArgs e) { base.OnMouseUp(e); if (dragging) { dragging = false; Capture = false; ClampPosition(); SaveNow(); } }
@@ -278,7 +363,7 @@ namespace PixelTrek
         void DisplayChanged(object sender, EventArgs e) { if (!IsDisposed && IsHandleCreated) BeginInvoke((Action)delegate { ClampPosition(); if (input != null) input.Reset(); }); }
         protected override void WndProc(ref Message m)
         {
-            if (m.Msg == 0x21 && (cities == null || !cities.Visible || !cities.Bounds.Contains(PointToClient(Cursor.Position)))) { m.Result = new IntPtr(3); return; } // Keep app focus except for keyboard-accessible city selection.
+            if(m.Msg==0x21&&page!=2&&GetChildAtPoint(PointToClient(Cursor.Position))==null){m.Result=new IntPtr(3);return;}
             if (m.Msg == 0x2E0)
             {
                 scale = (m.WParam.ToInt64() & 0xFFFF) / 96f;
@@ -300,10 +385,10 @@ namespace PixelTrek
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             if (!quitting && e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; Hide(); return; }
-            redraw.Stop(); saver.Dispose(); if (input != null) input.Dispose(); SaveNow();
+            redraw.Stop(); saver.Dispose(); if (input != null){input.RatesSampled-=RatesSampled;input.Dispose();} SaveNow();
             SystemEvents.PowerModeChanged -= PowerChanged; SystemEvents.DisplaySettingsChanged -= DisplayChanged;
             Native.WTSUnRegisterSessionNotification(Handle); tray.Visible = false; tray.Dispose();
-            tips.Dispose(); menu.Dispose(); if(cityFont!=null)cityFont.Dispose(); base.OnFormClosing(e);
+            redraw.Dispose();tips.Dispose(); menu.Dispose(); if(cityFont!=null)cityFont.Dispose();if(buttonFont!=Art.Small)buttonFont.Dispose();if(headerFont!=Art.Bold)headerFont.Dispose();base.OnFormClosing(e);
         }
     }
     internal sealed class DarkTable : ProfessionalColorTable
@@ -326,7 +411,7 @@ namespace PixelTrek
     }
     internal sealed class DetailForm : Form
     {
-        public DetailForm(View view, double ppi)
+        public DetailForm(View view, double ppi,bool showAchievements=false)
         {
             Text = "Pixel Trek - history & achievements"; BackColor = Art.Background; ForeColor = Art.White; Font = Art.Label;
             ClientSize = new Size(570, 490); StartPosition = FormStartPosition.CenterParent; FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false; MinimizeBox = false; TopMost = true;
@@ -335,10 +420,12 @@ namespace PixelTrek
             var tabs = new TabControl { Location = new Point(18, 82), Size = new Size(534, 350) };
             var history = new TabPage("Daily history") { BackColor = Art.Panel }; var achievements = new TabPage("Achievements") { BackColor = Art.Panel }; var peaks = new TabPage("Speed & acceleration peaks") { BackColor = Art.Panel };
             tabs.TabPages.Add(history); tabs.TabPages.Add(peaks); tabs.TabPages.Add(achievements);
+            if(showAchievements)tabs.SelectedTab=achievements;
             var list = new ListView { Dock = DockStyle.Fill, View = System.Windows.Forms.View.Details, FullRowSelect = true, BackColor = Art.Panel, ForeColor = Art.White, BorderStyle = BorderStyle.None };
             list.Columns.Add("Date", 100); list.Columns.Add("Pixels", 130); list.Columns.Add("Km eq", 95); list.Columns.Add("Keys", 85); list.Columns.Add("Clicks", 85);
             foreach (DayBucket day in view.Days) list.Items.Add(new ListViewItem(new [] { day.Date, Math.Floor(day.Counts.Pixels).ToString("N0"), Display.Kilometres(day.Counts.Pixels, ppi).ToString("0.000"), day.Counts.Keys.ToString("N0"), day.Counts.Clicks.ToString("N0") }));
             history.Controls.Add(list);
+            if(view.Days.Count==0)list.Controls.Add(new Label{Text="No daily history yet.\nYour first input will start today's totals.",ForeColor=Art.Muted,BackColor=Art.Panel,TextAlign=ContentAlignment.MiddleCenter,Size=new Size(450,70),Location=new Point(35,120)});
             var rateList = new ListView { Dock = DockStyle.Fill, View = System.Windows.Forms.View.Details, FullRowSelect = true, BackColor = Art.Panel, ForeColor = Art.White, BorderStyle = BorderStyle.None };
             rateList.Columns.Add("Period", 135); rateList.Columns.Add("Peak speed / m/s eq", 174); rateList.Columns.Add("Peak accel / m/s\u00b2 eq", 193);
             Counts[] rateCounts = { view.Today, view.Hour, view.Total }; string[] periods = { "Today", "Last 60 minutes", "All time" };

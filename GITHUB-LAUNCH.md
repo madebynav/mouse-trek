@@ -1,15 +1,22 @@
-# GitHub launch notes
+# Upload this source to GitHub
 
-Suggested release: **Pixel Trek 0.3.1 - Five cities, one curious mouse**
+1. Extract PixelTrek-v0.3.2-GitHub-Ready-Source.zip.
+2. Create an empty GitHub repository named PixelTrek (or use your chosen name).
+3. Upload the extracted contents into the repository root. Include .github and .gitignore.
+4. Keep README.md, LICENSE, assets and docs alongside Build.ps1 and the .cs files.
+5. Check the Windows build and checks workflow after the first push.
+6. For a release, tag v0.3.2 and attach the separately supplied portable ZIP.
 
-A tiny native Windows cursor odometer that turns screen travel into an illustrated city trek. Pick New York, Sydney, London, Moscow or Paris; follow labelled landmarks on a winding trail; collect km-equivalent badges and count taps/clicks for today, the last hour and lifetime. Cursor speed/acceleration, compact/tray modes and local exports are included.
+The source ZIP is the complete buildable project. The portable ZIP is the runnable app.
+Generated build output and private counters are excluded from the source package.
 
-Portable ZIP; no browser runtime or account. Distances are screen equivalents and the trails are schematics, not walking directions. This Trek edition removes v0.3.0's productivity/context analytics. Existing odometer totals carry over.
+Suggested release title: **Pixel Trek 0.3.2 — Dashboard, Treks and Graph**.
 
-## Before publishing
+This release adds smooth native speed/acceleration instruments, separate Treks and
+Graph views, a normalized 30-day Daily/Cumulative chart, fixed selected-date values,
+milestone celebrations and shorter header tooltips. Existing counts remain compatible.
 
-Upload the source package contents as the repository, and attach the portable ZIP to a tagged release. Use the MIT license and retain credits. Assets are illustrative examples. Describe the supplied verification accurately; GitHub CI has not run until it runs on the repository. The binary is unsigned.
-
-Be open about AI assistance: Nav designed, reviewed and tested this app with OpenAI Codex. Show a working demo and invite reproducible bug reports. Do not fabricate contributors, stars, reviews, company affiliation or benchmark claims.
-
-Publishing has not been performed by this local build task. See VERIFICATION.txt for local checks and CONTRIBUTING.md for reproduction.
+Screenshots contain illustrative data. Report only the supplied local verification;
+GitHub CI has not run until it runs in your repository. The executable is unsigned.
+Retain the MIT license and credits to Nav Medikonda and AI assistance from OpenAI Codex.
+No GitHub repository or release was published by this packaging task.

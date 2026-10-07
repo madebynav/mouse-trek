@@ -14,6 +14,7 @@ Run checks in a scratch folder, not your real saved-data folder:
 ./dist/PixelTrek.exe --self-test C:\Temp\PixelTrek-tests
 ./dist/PixelTrek.exe --preview C:\Temp\PixelTrek-preview
 ./dist/PixelTrek.exe --smoke C:\Temp\PixelTrek-smoke 30
+./dist/PixelTrek.exe --benchmark C:\Temp\PixelTrek-benchmark
 ```
 
 Self-test reports `test-results.txt`; preview generates illustrative UI images, rendering its own native widgets briefly offscreen; smoke uses an isolated data directory, installs the actual input listeners, renders its own widget, saves and exits. Smoke does not inject physical input. Physical-device checks must be performed separately.
@@ -45,3 +46,5 @@ Explain the concrete issue, new behavior and relevant checks. Note AI assistance
 
 These are suggested work areas, not fabricated open issues or completed tests.
 
+
+For 0.3.2 UI changes, verify all three native views, zero-filled chart dates, local midnight, daily/window cumulative totals, independent normalization, keyboard date selection, series toggles, milestone replay suppression and paused/hidden animation. The opt-in benchmark renders the actual native paint path into a reused offscreen bitmap with synthetic aggregate motion; its output includes fixture overhead.

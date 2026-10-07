@@ -1,51 +1,47 @@
-PIXEL TREK 0.3.1 - TREK EDITION VERIFICATION
-Date: 2026-10-08 (Australia/Sydney)
+Pixel Trek 0.3.2 — local verification, 8 October 2026
 
-109 checks passed on the final optimized .NET Framework build.
-Assembly version: 0.3.1.0. Executable size: 106,496 bytes.
-The source package contains the exact final test-results.txt.
+SOURCE
+Native C# / WinForms, Windows .NET Framework compiler. Assembly version 0.3.2.0.
+All source files, build script, manifest, config, license, docs and .github workflow
+are included. No external packages or dependency downloads are required.
 
-Includes the 59 core/input/motion/render regression checks and 50 Trek
-checks: five city definitions, named stops, exact 20 m checkpoints,
-increasing route distances, completion/repeated laps, city-aware badge
-comparisons, sampled-curve length progress, actual native dropdown
-selection/persistence, unchanged counters, v0.3.0 preference migration,
-ignored removed opt-ins and absence of analytics types in the executable.
-The existing zero/tiny/normal/over-range motion render regression runs
-at 100%, 125%, 150%, 200% and 300% drawing scales.
+CHECKS
+133 checks passed (exit 0). See test-results.txt for individual checks.
+Retained input/motion/persistence and city regressions. Added local-date window,
+missing-date, daily/cumulative, zero scale, unit normalization, rollover/restart,
+milestone replay/crossings, finite gauge targets and native navigation checks.
+Dashboard, Treks and Graph render at 100%, 125%, 150%, 200% and 300% scales.
 
-Actual WinForms widgets were rendered offscreen and inspected for all
-five cities. The default New York dropdown, long landmark labels, early
-Sydney street checkpoint and compact display were checked visually.
-Example assets use synthetic data; no real user counts are packaged.
+NATIVE PREVIEWS
+Inspected Dashboard, Treks, Daily/Cumulative/empty Graph, compact mode and empty
+history. The five city screenshots are captured from actual native Widget forms.
+Screenshots contain illustrative data, not the user's activity history.
 
-A 25-second native run of the final executable used an isolated fixture
-with old v0.3.0 preference flags enabled. Input registration, native
-widget capture, save and orderly exit succeeded. The user's actual saved
-counters and running app were not changed by the smoke check.
+RESOURCE FIXTURE
+Four native runs of about eight seconds each: idle, active synthetic motion,
+hidden synthetic motion and paused. The fixture calls actual Widget.OnPaint/GDI+
+into a reused offscreen bitmap; the fixture contributes timer/bitmap overhead.
+Active: 250 paints in 8.12 s, about 30.8 frames/s; 1187.5 ms process CPU;
+50,683,904 byte working set. Idle: 7 paints; hidden: 0; paused: 8.
+No fast ticks occurred while hidden or paused. Maximum sampled GDI handles: 22.
+These are short-run observations, not a memory ceiling or long-term guarantee.
+Full measurements are in docs/RESOURCE-MEASUREMENTS.txt.
 
-Resource sample at shutdown, not a ceiling or long-term guarantee:
-  Working set: 50,765,824 bytes (48.4 MiB)
-  Private bytes: 28,753,920 bytes (27.4 MiB)
-  Total process CPU time: 296.875 ms across the run, including startup,
-  capture and save; this is not a steady idle CPU percentage.
+LATENCY
+Measurement remains around 100 ms with the verified 120 ms exponential filter.
+The 5000 px/s step reached 2827.01 px/s at its first measurement sample.
+Display interpolation reached 3052.43 px/s after 33 ms toward a 5000 px/s target.
+Measured samples wake idle rendering; elapsed-time interpolation is separate from
+the measurement formulas. Needle and numeral share the same rendered value.
 
-Normal home: 575 x 472 logical pixels, approximately 15% larger in each
-dimension than v0.3.0. Compact: 575 x 82. No browser/runtime packages,
-networking, app/context/calendar analytics or administrator request.
-The standard-user executable remains unsigned.
+LIMITS
+Real mixed-DPI monitors, long-term resources, high-rate physical devices, secure
+contexts and power-loss behavior need further hardware testing. GitHub CI is
+included but has not run in the user's repository. No GitHub publication is claimed.
 
-Distance is a screen equivalent at the chosen PPI. Street stops are
-playful 20 m thresholds; later stops use approximate straight-line
-landmark legs. Trail shapes/node spacing are illustrative, not a road
-map or walking route. Switching city reuses the same lifetime distance.
-
-Verification limits: physical-device end-to-end counts, actual mixed-DPI
-monitors, secure/elevated contexts, keyboard interaction with open native
-dropdowns, startup-at-sign-in, real power loss and long-term resource use
-have not been exercised here. Programmatic native selection was checked;
-bitmap scaling does not replace physical-monitor testing. GitHub CI is
-included but has not run on GitHub. Publishing was not performed.
-
-Reproduce with Build.ps1 and --self-test using an isolated scratch folder.
-See README.md, CONTRIBUTING.md and docs/MEASUREMENT.md for details.
+NATIVE STARTUP/SAVE
+Input startup: OK
+Working set bytes: 54796288
+Private bytes: 29114368
+CPU time ms: 593.75
+Saved successfully: OK

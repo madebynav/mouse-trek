@@ -107,5 +107,29 @@ PASS v0.3.0 preferences migrate to Trek-only while preserving period and counts
 PASS New saves contain no analytics opt-ins or removed navigation state
 PASS Removed analytics and calendar engines are absent from the built executable
 PASS All five city homes render in all periods, including repeated laps and paused state
+PASS Graph uses 30 consecutive local dates, including today
+PASS Missing dates are zero-filled; outside-window totals are excluded
+PASS Daily values and cumulative window totals are distinct and exact
+PASS Cumulative distance uses the displayed window and screen-equivalent units
+PASS Each unlike series has its own independent 30-day maximum
+PASS All-zero graph normalization is finite
+PASS Midnight shifts one date, retains yesterday and drops the oldest date
+PASS Chart restart snapshot reproduces running window totals
+PASS Long gaps empty all old chart points without unbounded history
+PASS Historical milestones do not replay on launch
+PASS Changing PPI without input does not celebrate historical thresholds
+PASS Distance/key/click crossings celebrate once, without replay
+PASS Gauge attack reaches over 60 percent within one 33 ms frame
+PASS Gauge decay settles to exact zero and permits idle refresh
+PASS Nonfinite gauge targets are sanitized before drawing
+PASS Dashboard starts with the city selector hidden
+PASS Treks reveals the native city selector in the same window
+PASS Graph navigation hides the Trek selector
+PASS Hidden widget uses bounded low-frequency refresh
+PASS New dashboard, Treks and empty/nonempty Graph render at scale 1
+PASS New dashboard, Treks and empty/nonempty Graph render at scale 1.25
+PASS New dashboard, Treks and empty/nonempty Graph render at scale 1.5
+PASS New dashboard, Treks and empty/nonempty Graph render at scale 2
+PASS New dashboard, Treks and empty/nonempty Graph render at scale 3
 
-109 checks passed.
+133 checks passed.

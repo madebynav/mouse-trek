@@ -1,0 +1,7 @@
+idle visible: 8.04 s; CPU 515.6 ms; working set 45891584 bytes; peak sampled private 31748096 bytes; max sampled GDI 22; paints 7; fast ticks 0; aggregate reads 31; ending timer 250 ms
+active synthetic motion: 8.12 s; CPU 1187.5 ms; working set 50683904 bytes; peak sampled private 33816576 bytes; max sampled GDI 22; paints 250; fast ticks 250; aggregate reads 74; ending timer 30 ms
+hidden synthetic motion: 8.00 s; CPU 578.1 ms; working set 50774016 bytes; peak sampled private 33914880 bytes; max sampled GDI 22; paints 0; fast ticks 0; aggregate reads 32; ending timer 250 ms
+paused visible: 8.11 s; CPU 468.8 ms; working set 50847744 bytes; peak sampled private 33988608 bytes; max sampled GDI 22; paints 8; fast ticks 0; aggregate reads 33; ending timer 250 ms
+Measurement sample: 100 ms; 120 ms exponential filter. A 5000 px/s step produces 2827.01 px/s at the first sample.
+Display interpolation: 3052.43 px/s after 33 ms toward a 5000 px/s target. Needle and numeral share the same value.
+Synthetic fixture: actual Widget.OnPaint/GDI+ rendered into a reused offscreen bitmap at native timer cadence. No global hooks, cursor movement, typed text or production-state writes. Resource figures are short-run observations; the fixture adds its own paint timer/bitmap.

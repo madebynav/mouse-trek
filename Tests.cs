@@ -116,7 +116,7 @@ namespace PixelTrek
                 for (int i = 0; i < 3600; i++) { stress.Add(1, 1, 1, now.AddSeconds(-i)); stress.ObserveRates(1000, 10000, now.AddSeconds(-i)); }
                 var stressStore = new Store(Path.Combine(directory, "full-hour"));
                 Assert(stressStore.Save(stress.Snapshot(new Preferences(), now)) && stressStore.Load().Seconds.Count == 3600, "A full populated rolling hour saves and reloads within storage limits");
-                GaugeRenderingRegression(); TrekTests.Run(Assert,directory);
+                GaugeRenderingRegression(); TrekTests.Run(Assert,directory);DesignTests.Run(Assert,directory);
                 lines.Add("\r\n" + count + " checks passed."); File.WriteAllLines(Path.Combine(directory, "test-results.txt"), lines); return 0;
             }
             catch (Exception ex) { lines.Add("FAIL " + ex); File.WriteAllLines(Path.Combine(directory, "test-results.txt"), lines); return 1; }

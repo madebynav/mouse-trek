@@ -1,6 +1,6 @@
 # Privacy - Trek edition
 
-Pixel Trek 0.3.1 is a local cursor odometer. Its executable contains no workflow, focus, strain, app-context or calendar analytics engine. Old opt-in flags do not enable those removed features.
+Pixel Trek 0.3.2 is a local cursor odometer. Its executable contains no workflow, focus, strain, app-context or calendar analytics engine. Old opt-in flags do not enable those removed features.
 
 ## Input and storage
 
@@ -17,3 +17,5 @@ Older `insights.json` and its backup, if present, are left untouched and never o
 ## Controls
 
 Pause suspends counting; Quit saves and ends tracking. Hiding or compacting keeps counting. Optional Start with Windows changes only the current user's Run entry and can be disabled in the same menu. No administrator elevation is requested. The app's measurement scope is the normal desktop; secure/elevated contexts may be unavailable.
+
+Graph reuses the existing daily aggregate buckets. Thirty dates and chart modes are transient UI state; no additional persistent telemetry or raw event history is stored. The opt-in --benchmark command writes only synthetic aggregate counters and a resource report in its explicitly supplied directory.

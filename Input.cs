@@ -32,6 +32,7 @@ namespace PixelTrek
         readonly MotionCounter motion = new MotionCounter();
         readonly KeyCounter keys = new KeyCounter();
         public readonly Kinematics Live = new Kinematics();
+        internal event Action RatesSampled;
         static double Clock { get { return Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency; } }
         Native.HookProc mouseCallback;
         IntPtr mouseHook, rawWindow;
@@ -63,8 +64,7 @@ namespace PixelTrek
                 sample.Tick += delegate
                 {
                     if (suspended || tracker.Paused) { Live.Reset(Clock); sample.Stop(); return; }
-                    LiveRates rates = Live.Sample(Clock);
-                    tracker.ObserveRates(rates.Speed, rates.Acceleration, DateTime.UtcNow);
+                    LiveRates rates = SampleRates();
                     if (rates.Speed == 0 && rates.Acceleration == 0) sample.Stop();
                 };
                 Application.Run(context);
@@ -77,6 +77,11 @@ namespace PixelTrek
                 if (window != null) window.CloseWindow();
                 rawWindow = IntPtr.Zero;
             }
+        }
+        internal LiveRates SampleRates()
+        {
+            LiveRates rates=Live.Sample(Clock);tracker.ObserveRates(rates.Speed,rates.Acceleration,DateTime.UtcNow);
+            var sampled=RatesSampled;if(sampled!=null)sampled();return rates;
         }
         void InstallMouse()
         {

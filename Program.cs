@@ -14,8 +14,8 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("A lightweight, local desktop pixel odometer")]
 [assembly: AssemblyCompany("Pixel Trek")]
 [assembly: AssemblyProduct("Pixel Trek")]
-[assembly: AssemblyVersion("0.3.1.0")]
-[assembly: AssemblyFileVersion("0.3.1.0")]
+[assembly: AssemblyVersion("0.3.2.0")]
+[assembly: AssemblyFileVersion("0.3.2.0")]
 
 namespace PixelTrek
 {
@@ -28,6 +28,7 @@ namespace PixelTrek
             Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
             if (args.Length >= 2 && args[0] == "--self-test") return Tests.Run(args[1]);
             if (args.Length >= 2 && args[0] == "--preview") { Preview(args[1]); return 0; }
+            if(args.Length>=2&&args[0]=="--benchmark")return Benchmark.Run(args[1]);
             bool smoke = args.Length >= 2 && args[0] == "--smoke";
             string dataDirectory = smoke ? Path.GetFullPath(args[1]) : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PixelTrek");
             string mutexName = "Local\\PixelTrek-" + WindowsIdentity.GetCurrent().User.Value + (smoke ? "-smoke" : "");
@@ -83,10 +84,10 @@ namespace PixelTrek
             foreach(var city in Adventure.Cities)
             {
                 using(var bitmap=new Bitmap(Dashboard.Width*2,Dashboard.Height*2))using(var g=Graphics.FromImage(bitmap))
-                {g.ScaleTransform(2,2);Dashboard.Render(g,v,false,0,false,"LIVE",96,rates,0,city.Id);bitmap.Save(Path.Combine(directory,"PixelTrek-"+city.Id+".png"),ImageFormat.Png);}
+                {g.ScaleTransform(2,2);Dashboard.Render(g,v,false,0,false,"LIVE",96,rates,0,city.Id,1);bitmap.Save(Path.Combine(directory,"PixelTrek-"+city.Id+".png"),ImageFormat.Png);}
                 NativePreview(directory,city.Id,v);
             }
-            File.Copy(Path.Combine(directory,"PixelTrek-new-york.png"),Path.Combine(directory,"PixelTrek-Widget.png"),true);
+            PreviewViews(directory,rates);
             using(var bitmap=new Bitmap(Dashboard.Width*2,Dashboard.CompactHeight*2))using(var g=Graphics.FromImage(bitmap))
             {g.ScaleTransform(2,2);Dashboard.Render(g,v,true,0,false,"LIVE",96,rates);bitmap.Save(Path.Combine(directory,"PixelTrek-Compact.png"),ImageFormat.Png);}
             var early=new View {Today=new Counts {Pixels=10000,Keys=100,Clicks=20},Hour=new Counts(),Total=new Counts {Pixels=.01*96/.0254*1000,Keys=200,Clicks=50},BestDay=new Counts(),Days=new System.Collections.Generic.List<DayBucket>()};
@@ -108,7 +109,26 @@ namespace PixelTrek
             DateTime now=DateTime.UtcNow;var tracker=new Tracker();tracker.Add(sample.Today.Pixels,sample.Today.Keys,sample.Today.Clicks,now);tracker.Add(sample.Total.Pixels-sample.Today.Pixels,sample.Total.Keys-sample.Today.Keys,sample.Total.Clicks-sample.Today.Clicks,now.AddDays(-1));
             var prefs=new Preferences {CityId=cityId};string scratch=Path.Combine(directory,"native-preview-state-"+cityId);
             using(var engine=new InputEngine(tracker))using(var widget=new Widget(tracker,new Store(scratch),prefs,engine))
-            {widget.Location=new Point(-30000,-30000);widget.Show();Application.DoEvents();RenderForm(widget,Path.Combine(directory,"Native-"+cityId+".png"));widget.Hide();widget.Quit();}
+            {widget.Location=new Point(-30000,-30000);widget.Navigate(1);widget.Show();Application.DoEvents();RenderForm(widget,Path.Combine(directory,"Native-"+cityId+".png"));widget.Hide();widget.Quit();}
+        }
+        static void PreviewViews(string directory,LiveRates rates)
+        {
+            var tracker=new Tracker();DateTime local=DateTime.Today.AddHours(12);
+            for(int i=0;i<30;i++)if(i%6!=0)tracker.Add((120000+i*28000)*(1+Math.Sin(i*.8)),1500+(i*751)%9000,100+(i*313)%1900,local.AddDays(i-29).ToUniversalTime());
+            using(var engine=new InputEngine(tracker))using(var widget=new Widget(tracker,new Store(Path.Combine(directory,"preview-only-state")),new Preferences(),engine))
+            {
+                widget.Location=new Point(-30000,-30000);widget.Show();Application.DoEvents();widget.PreviewRates(rates);
+                RenderForm(widget,Path.Combine(directory,"PixelTrek-Dashboard.png"));
+                File.Copy(Path.Combine(directory,"PixelTrek-Dashboard.png"),Path.Combine(directory,"PixelTrek-Widget.png"),true);
+                widget.Navigate(2);RenderForm(widget,Path.Combine(directory,"PixelTrek-Graph.png"));
+                foreach(Control c in widget.Controls)if(c is Button&&c.Text=="Cumulative")((Button)c).PerformClick();
+                RenderForm(widget,Path.Combine(directory,"PixelTrek-Graph-Cumulative.png"));widget.Hide();widget.Quit();
+            }
+            var empty=new Tracker();using(var engine=new InputEngine(empty))using(var widget=new Widget(empty,new Store(Path.Combine(directory,"empty-only-state")),new Preferences(),engine))
+            {widget.Location=new Point(-30000,-30000);widget.Show();Application.DoEvents();widget.Navigate(2);RenderForm(widget,Path.Combine(directory,"PixelTrek-Graph-Empty.png"));widget.Hide();widget.Quit();}
+            using(var form=new DetailForm(empty.Read(DateTime.UtcNow,true),96))RenderForm(form,Path.Combine(directory,"PixelTrek-History-Empty.png"));
+            using(var engine=new InputEngine(tracker))using(var widget=new Widget(tracker,new Store(Path.Combine(directory,"compact-only-state")),new Preferences{Compact=true},engine))
+            {widget.Location=new Point(-30000,-30000);widget.Show();Application.DoEvents();RenderForm(widget,Path.Combine(directory,"Native-Compact.png"));widget.Hide();widget.Quit();}
         }
     }
 }

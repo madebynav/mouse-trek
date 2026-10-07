@@ -28,7 +28,7 @@ $iconBitmap.Dispose()
 $iconBrush.Dispose()
 $eyeBrush.Dispose()
 $noseBrush.Dispose()
-$sources = @('Core.cs','Input.cs','Widget.cs','Program.cs','Tests.cs','Adventure.cs','Dashboard.cs','TrekTests.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
+$sources = @('Core.cs','Input.cs','Widget.cs','Program.cs','Tests.cs','Adventure.cs','Dashboard.cs','TrekTests.cs','Graph.cs','DesignTests.cs','Benchmark.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
 & $compilerPath /nologo /target:winexe /platform:anycpu /optimize+ /debug- /checked+ "/out:$(Join-Path $OutputDirectory 'PixelTrek.exe')" "/win32manifest:$(Join-Path $PSScriptRoot 'PixelTrek.manifest')" "/win32icon:$iconFile" "/resource:$iconFile,PixelTrek.ico" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll $sources
 if ($LASTEXITCODE -ne 0) { throw 'Compilation failed.' }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'PixelTrek.exe.config') -Destination $OutputDirectory -Force

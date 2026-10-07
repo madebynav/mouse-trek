@@ -23,26 +23,28 @@ namespace PixelTrek
             float w=(float)(r.Width*Math.Max(0,Math.Min(1,fraction)));
             if(w>=1)using(var b=new SolidBrush(color))g.FillRectangle(b,r.X,r.Y,w,r.Height);
         }
-        public static void Render(Graphics g,View view,bool compact,int frame,bool resting,string status,double ppi,LiveRates rates,int period=0,string cityId=null)
+        public static void Render(Graphics g,View view,bool compact,int frame,bool resting,string status,double ppi,LiveRates rates,int period=0,string cityId=null,int page=0,string notice=null,GraphWindow graph=null,GraphSeries series=null,int selected=29,bool cumulative=false,bool[] shown=null)
         {
             g.Clear(Art.Background);g.SmoothingMode=SmoothingMode.AntiAlias;
             if(compact){Compact(g,view,ppi,rates,frame,resting);return;}
             using(var pen=new Pen(Color.FromArgb(46,58,76)))g.DrawRectangle(pen,0,0,Width-1,Height-1);
             Art.Mouse(g,25,12,32,frame,resting);T(g,"PIXEL TREK",69,12,Art.White,Art.Title);
             T(g,status=="LIVE"?(resting?"Tiny paws. Big city.":"Your cursor is going places."):status,70,34,status=="LIVE"?Art.Muted:Art.Peach,Art.Small);
-            CityTrek city=Adventure.City(cityId);double km=Display.Kilometres(view.Total.Pixels,ppi);
-            DrawJourney(g,city,Adventure.Progress(city,km),km);
-            DrawBadge(g,km,city);
+            if(page==1){Treks(g,view,ppi,cityId);return;}
+            if(page==2){Graph(g,graph,series,selected,cumulative,shown);return;}
             DrawMotion(g,rates,ppi);
+            Art.Box(g,Color.FromArgb(29,39,49),new RectangleF(18,314,539,33),8);
+            T(g,String.IsNullOrEmpty(notice)?"Every little move adds up.":"MILESTONE  /  "+notice,31,323,String.IsNullOrEmpty(notice)?Art.Muted:Art.Green,Art.Small);
+            T(g,"Screen equivalents at "+DistanceScale.ValidPpi(ppi).ToString("0.#")+" PPI. Pixels are the original distance.",20,352,Art.Muted,Art.Small);
             Counts c=period==1?view.Hour:period==2?view.Total:view.Today;
             Color[] colors={Art.Cyan,Art.Purple,Art.Peach};string[] headings={"CURSOR","KEY TAPS","CLICKS"};
             for(int i=0;i<3;i++)
             {
-                float x=18+i*184;Art.Box(g,Art.Panel,new RectangleF(x,421,171,45),9);
-                T(g,headings[i],x+11,426,Art.Muted,Art.Small);
-                string number=i==0?Display.Kilometres(c.Pixels,ppi).ToString("0.000")+" km":Display.Short(i==1?c.Keys:c.Clicks);
-                Fit(g,number,new RectangleF(x+10,440,153,25),colors[i],Art.Number);
-                if(i==0)Fit(g,Display.Short(c.Pixels)+" px",new RectangleF(x+73,427,88,13),Art.Muted,Art.Small,StringAlignment.Far);
+                float x=18+i*184;Art.Box(g,Art.Panel,new RectangleF(x,403,171,57),9);
+                T(g,headings[i],x+11,409,Art.Muted,Art.Small);
+                string number=i==0?Display.Kilometres(c.Pixels,ppi).ToString("0.000")+" km eq":Display.Short(i==1?c.Keys:c.Clicks);
+                Fit(g,number,new RectangleF(x+10,430,153,25),colors[i],Art.Number);
+                if(i==0)Fit(g,Display.Short(c.Pixels)+" px",new RectangleF(x+73,410,88,13),Art.Muted,Art.Small,StringAlignment.Far);
             }
         }
         static void Compact(Graphics g,View v,double ppi,LiveRates rates,int frame,bool resting)
@@ -56,7 +58,7 @@ namespace PixelTrek
         {
             Art.Box(g,Art.Panel,new RectangleF(18,58,539,202),13);
             T(g,city.Name.ToUpperInvariant(),34,71,Art.Cyan,Art.Bold);
-            Fit(g,"Lap "+Display.Short(progress.Lap)+" / illustrated trail",new RectangleF(159,74,205,17),Art.Muted,Art.Small);
+            Fit(g,"Lap "+Display.Short(progress.Lap)+" / "+(progress.Km/city.Length*100).ToString("0")+"% / schematic",new RectangleF(159,74,205,17),Art.Muted,Art.Small);
             Fit(g,lifetimeKm.ToString("0.000")+" km eq",new RectangleF(375,71,164,22),Art.White,Art.Bold,StringAlignment.Far);
             using(var track=new Pen(Color.FromArgb(62,74,96),3)){track.StartCap=track.EndCap=LineCap.Round;foreach(var trail in Trails)g.DrawLines(track,trail);}
             PointF current=Pins[0];
@@ -93,13 +95,94 @@ namespace PixelTrek
         }
         static void DrawMotion(Graphics g,LiveRates rates,double ppi)
         {
-            Art.Box(g,Art.Panel,new RectangleF(18,324,539,60),10);
-            T(g,"CURSOR SPEED",34,333,Art.Muted,Art.Small);Fit(g,Display.Rate(rates.Speed,ppi)+" m/s eq",new RectangleF(34,353,180,24),Art.Cyan,Art.Bold);
-            T(g,"ACCELERATION",236,331,Art.Muted,Art.Small);Fit(g,Display.Rate(rates.Acceleration,ppi),new RectangleF(230,344,119,36),Art.Peach,Big);
-            T(g,"m/s\u00b2 eq",353,358,Art.Muted,Art.Small);
-            double fraction=Math.Max(0,Math.Min(1,Display.Metres(rates.Acceleration,ppi)/20));
-            for(int i=0;i<12;i++){double angle=2*Math.PI*i/12,rad=17+5*fraction;float x=505+(float)(Math.Cos(angle)*rad),y=354+(float)(Math.Sin(angle)*rad);using(var b=new SolidBrush(i<Math.Ceiling(fraction*12)?Art.Purple:Color.FromArgb(52,64,87)))g.FillEllipse(b,x-2.5f,y-2.5f,5,5);}
-            using(var b=new SolidBrush(Art.Cyan))g.FillEllipse(b,497,346,16,16);
+            Dial(g,18,"CURSOR SPEED",rates.Speed,ppi,3,"m/s equivalent",Art.Cyan);
+            Dial(g,294,"ACCELERATION",rates.Acceleration,ppi,20,"m/s\u00b2 equivalent",Art.Peach);
+        }
+        static readonly PointF[] DialArc=Arc(78);
+        static readonly PointF[] TickOuter=Ticks(69),TickInner=Ticks(64),TickMajor=Ticks(59);
+        static PointF[] Arc(float radius){return Enumerable.Range(0,91).Select(i=>Polar(radius,i/90.0)).ToArray();}
+        static PointF[] Ticks(float radius){return Enumerable.Range(0,31).Select(i=>Polar(radius,i/30.0)).ToArray();}
+        static PointF Polar(float radius,double fraction){double a=(135+270*fraction)*Math.PI/180;return new PointF((float)(radius*Math.Cos(a)),(float)(radius*Math.Sin(a)));}
+        static void Dial(Graphics g,float x,string title,double raw,double ppi,double max,string units,Color color)
+        {
+            Art.Box(g,Art.Panel,new RectangleF(x,64,263,238),13);
+            Fit(g,title,new RectangleF(x+18,80,227,24),Art.Muted,Art.Bold);
+            double value=Display.Metres(GaugeMotion.Finite(raw),ppi),fraction=Math.Min(1,value/max);
+            var save=g.Save();g.TranslateTransform(x+131.5f,187);
+            using(var track=new Pen(Color.FromArgb(51,65,82),4)){track.StartCap=track.EndCap=LineCap.Round;g.DrawLines(track,DialArc);}
+            if(fraction>1e-10)
+            {
+                int count=Math.Max(2,(int)Math.Ceiling(fraction*90)+1);var points=new PointF[count];
+                for(int i=0;i<count;i++)points[i]=Polar(78,fraction*i/(count-1));
+                using(var glow=new Pen(Color.FromArgb(24,color),10))g.DrawLines(glow,points);
+                using(var pen=new Pen(color,3.5f)){pen.StartCap=pen.EndCap=LineCap.Round;g.DrawLines(pen,points);}
+            }
+            using(var pen=new Pen(Color.FromArgb(92,108,129),1))for(int i=0;i<31;i++)g.DrawLine(pen,TickOuter[i],i%5==0?TickMajor[i]:TickInner[i]);
+            for(int i=0;i<5;i++)
+            {
+                var p=Polar(47,i/4.0);Fit(g,(max*i/4).ToString("0.#"),new RectangleF(p.X-18,p.Y-7,36,16),Art.Muted,Art.Small,StringAlignment.Center);
+            }
+            var tip=Polar(58,fraction);var tail=Polar(-10,fraction);
+            using(var glow=new Pen(Color.FromArgb(30,color),7)){glow.EndCap=LineCap.Round;g.DrawLine(glow,tail,tip);}
+            using(var pen=new Pen(color,2)){pen.EndCap=LineCap.Round;g.DrawLine(pen,tail,tip);}
+            using(var b=new SolidBrush(Art.White))g.FillEllipse(b,-3,-3,6,6);
+            g.Restore(save);
+            Fit(g,Display.Rate(GaugeMotion.Finite(raw),ppi),new RectangleF(x+17,231,229,35),color,Big,StringAlignment.Center);
+            Fit(g,units,new RectangleF(x+17,270,229,17),Art.Muted,Art.Small,StringAlignment.Center);
+            if(value>max)Fit(g,"above dial range",new RectangleF(x+150,81,94,15),color,Art.Small,StringAlignment.Far);
+        }
+        static void Treks(Graphics g,View v,double ppi,string cityId)
+        {
+            T(g,"TREKS",98,66,Art.White,Art.Title);
+            CityTrek city=Adventure.City(cityId);double km=Display.Kilometres(v.Total.Pixels,ppi);
+            var save=g.Save();g.TranslateTransform(0,44);DrawJourney(g,city,Adventure.Progress(city,km),km);DrawBadge(g,km,city);g.Restore(save);
+            for(int i=0;i<2;i++)
+            {
+                bool keys=i==0;long count=keys?v.Total.Keys:v.Total.Clicks;long goal=Adventure.NextInput(count,keys);Color color=keys?Art.Purple:Art.Peach;float x=18+i*276;
+                Art.Box(g,Art.Panel,new RectangleF(x,374,263,70),9);
+                T(g,keys?"KEY TAP ACHIEVEMENTS":"CLICK ACHIEVEMENTS",x+13,383,Art.Muted,Art.Small);
+                Fit(g,Adventure.InputTitle(count,keys),new RectangleF(x+13,401,239,20),color,Art.Bold);
+                Fit(g,Display.Short(count)+" total  /  "+(goal>0?"next "+Display.Short(goal):"all tiers reached"),new RectangleF(x+13,425,239,16),Art.Muted,Art.Small);
+            }
+            T(g,"Schematic trails, approximate legs. Open All badges for the complete achievement ladders.",20,452,Art.Muted,Art.Small);
+        }
+        internal static readonly RectangleF Plot=new RectangleF(61,181,464,163);
+        static void Graph(Graphics g,GraphWindow window,GraphSeries data,int selected,bool cumulative,bool[] shown)
+        {
+            T(g,"30-DAY GRAPH",98,66,Art.White,Art.Title);
+            if(window==null||data==null)return;
+            shown=shown??new[]{true,true,true};selected=Math.Max(0,Math.Min(29,selected));
+            Art.Box(g,Art.Panel,new RectangleF(18,138,539,246),12);
+            T(g,"RELATIVE SCALE  /  each line uses its own 30-day maximum",32,149,Art.Muted,Art.Small);
+            using(var pen=new Pen(Color.FromArgb(48,61,79),1))for(int i=0;i<5;i++)
+            {
+                float y=Plot.Bottom-Plot.Height*i/4;g.DrawLine(pen,Plot.Left,y,Plot.Right,y);
+                Fit(g,(i*25)+"%",new RectangleF(22,y-7,32,15),Art.Muted,Art.Small,StringAlignment.Far);
+            }
+            float selectedX=Plot.X+Plot.Width*selected/29;
+            using(var line=new Pen(Color.FromArgb(93,109,132),1)){line.DashStyle=DashStyle.Dash;g.DrawLine(line,selectedX,Plot.Top,selectedX,Plot.Bottom);}
+            Color[] colors={Art.Cyan,Art.Purple,Art.Peach};DashStyle[] styles={DashStyle.Solid,DashStyle.Dot,DashStyle.Dash};
+            for(int s=0;s<3;s++)if(shown[s])
+            {
+                var points=new PointF[30];for(int i=0;i<30;i++)points[i]=new PointF(Plot.X+Plot.Width*i/29,Plot.Bottom-(float)data.Normal(s,i)*Plot.Height);
+                using(var pen=new Pen(colors[s],2)){pen.LineJoin=LineJoin.Round;pen.StartCap=pen.EndCap=LineCap.Round;pen.DashStyle=styles[s];g.DrawLines(pen,points);}
+                using(var b=new SolidBrush(colors[s]))for(int i=0;i<30;i++)
+                {
+                    float r=i==selected?4:2;PointF p=points[i];
+                    if(s==0)g.FillEllipse(b,p.X-r,p.Y-r,r*2,r*2);
+                    else if(s==1)g.FillRectangle(b,p.X-r,p.Y-r,r*2,r*2);
+                    else g.FillPolygon(b,new[]{new PointF(p.X,p.Y-r),new PointF(p.X+r,p.Y+r),new PointF(p.X-r,p.Y+r)});
+                }
+            }
+            if(data.Max.All(n=>n==0))Fit(g,"No activity recorded yet",new RectangleF(95,240,395,24),Art.Muted,Art.Bold,StringAlignment.Center);
+            foreach(int i in new[]{0,7,14,21,29})Fit(g,window.Dates[i].ToString("d MMM"),new RectangleF(Plot.X+Plot.Width*i/29-27,354,54,16),Art.Muted,Art.Small,StringAlignment.Center);
+            Art.Box(g,Color.FromArgb(29,39,49),new RectangleF(18,390,539,61),9);
+            Fit(g,window.Dates[selected].ToString("ddd, d MMM")+(selected==29?"  /  TODAY, PARTIAL":"")+(cumulative?"  /  RUNNING WINDOW TOTAL":"  /  DAILY TOTAL"),new RectangleF(31,395,515,16),Art.White,Art.Small);
+            string[] labels={"km eq","key taps","clicks"};
+            for(int s=0;s<3;s++)Fit(g,data.Values[s][selected].ToString(s==0?"0.000000":"N0")+" "+labels[s],new RectangleF(31+s*176,416,169,20),colors[s],Art.Bold);
+            double pixels=0;for(int i=cumulative?0:selected;i<=selected;i++)pixels+=window.Days[i].Pixels;
+            T(g,pixels.ToString("0.###")+" px",31,436,Art.Muted,Art.Small);
+            T(g,cumulative?"Baseline: 0 before "+window.Dates[0].ToString("d MMM")+". Window totals; lifetime is separate.":"Select a date: click the chart or use Left / Right, Home / End.",20,454,Art.Muted,Art.Small);
         }
         static PointF[][] BuildTrails()
         {
