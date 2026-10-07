@@ -1,0 +1,51 @@
+PIXEL TREK 0.3.1 - TREK EDITION VERIFICATION
+Date: 2026-10-08 (Australia/Sydney)
+
+109 checks passed on the final optimized .NET Framework build.
+Assembly version: 0.3.1.0. Executable size: 106,496 bytes.
+The source package contains the exact final test-results.txt.
+
+Includes the 59 core/input/motion/render regression checks and 50 Trek
+checks: five city definitions, named stops, exact 20 m checkpoints,
+increasing route distances, completion/repeated laps, city-aware badge
+comparisons, sampled-curve length progress, actual native dropdown
+selection/persistence, unchanged counters, v0.3.0 preference migration,
+ignored removed opt-ins and absence of analytics types in the executable.
+The existing zero/tiny/normal/over-range motion render regression runs
+at 100%, 125%, 150%, 200% and 300% drawing scales.
+
+Actual WinForms widgets were rendered offscreen and inspected for all
+five cities. The default New York dropdown, long landmark labels, early
+Sydney street checkpoint and compact display were checked visually.
+Example assets use synthetic data; no real user counts are packaged.
+
+A 25-second native run of the final executable used an isolated fixture
+with old v0.3.0 preference flags enabled. Input registration, native
+widget capture, save and orderly exit succeeded. The user's actual saved
+counters and running app were not changed by the smoke check.
+
+Resource sample at shutdown, not a ceiling or long-term guarantee:
+  Working set: 50,765,824 bytes (48.4 MiB)
+  Private bytes: 28,753,920 bytes (27.4 MiB)
+  Total process CPU time: 296.875 ms across the run, including startup,
+  capture and save; this is not a steady idle CPU percentage.
+
+Normal home: 575 x 472 logical pixels, approximately 15% larger in each
+dimension than v0.3.0. Compact: 575 x 82. No browser/runtime packages,
+networking, app/context/calendar analytics or administrator request.
+The standard-user executable remains unsigned.
+
+Distance is a screen equivalent at the chosen PPI. Street stops are
+playful 20 m thresholds; later stops use approximate straight-line
+landmark legs. Trail shapes/node spacing are illustrative, not a road
+map or walking route. Switching city reuses the same lifetime distance.
+
+Verification limits: physical-device end-to-end counts, actual mixed-DPI
+monitors, secure/elevated contexts, keyboard interaction with open native
+dropdowns, startup-at-sign-in, real power loss and long-term resource use
+have not been exercised here. Programmatic native selection was checked;
+bitmap scaling does not replace physical-monitor testing. GitHub CI is
+included but has not run on GitHub. Publishing was not performed.
+
+Reproduce with Build.ps1 and --self-test using an isolated scratch folder.
+See README.md, CONTRIBUTING.md and docs/MEASUREMENT.md for details.

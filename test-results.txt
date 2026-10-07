@@ -1,0 +1,111 @@
+PASS First point creates baseline
+PASS Diagonal travel uses Euclidean distance
+PASS Negative multi-monitor coordinates work
+PASS Injected cursor movement is excluded
+PASS Ignored cursor jump updates the baseline
+PASS Resume resets cursor baseline
+PASS New key press counts
+PASS Held-key repeat does not count
+PASS Release permits a new press
+PASS Two keyboards have independent held states
+PASS Extended key codes are distinct
+PASS Session reset clears held keys
+PASS All-time totals sum every event
+PASS Rolling hour excludes exact 3600-second boundary
+PASS Rolling hour expires without new input
+PASS Hour is empty after a long shutdown
+PASS Pause excludes activity
+PASS Local midnight resets today and preserves lifetime
+PASS Rolling hour crosses local midnight
+PASS First atomic save succeeds
+PASS Restart restores totals, hour and preferences
+PASS Restart discards expired hour buckets
+PASS Replacement save maintains backup
+PASS Corrupt primary recovers previous valid backup
+PASS Unreadable saves are preserved instead of overwritten
+PASS Bounded daily history preserves all-time totals
+PASS Best-day records survive restart
+PASS Real-distance and key-tap milestones replace pixel ranks
+PASS Large values format compactly
+PASS Native event pipeline updates all three periods and rejects repeat/up events
+PASS Native event pipeline rejects injected mouse events
+PASS Native event pipeline respects pause
+PASS Explicit pause survives restart
+PASS 96-PPI reference conversion: 1M px is 0.264583 km equivalent
+PASS Doubling PPI halves distance equivalents without changing pixels
+PASS Invalid or absent saved scale falls back to 96 PPI
+PASS Monitor dimensions calculate pixel density
+PASS Invalid calibration dimensions are rejected
+PASS Stationary cursor has zero speed and acceleration
+PASS Movement produces finite smoothed velocity and acceleration
+PASS Constant straight velocity converges to near-zero acceleration
+PASS Direction reversal accelerates even at unchanged path speed
+PASS Braking contributes to acceleration magnitude
+PASS Live rates settle completely to zero after stopping
+PASS Long sampling gaps discard stale motion instead of spiking
+PASS Pause/session reset clears live rates immediately
+PASS Peak rates use maxima for each time period, not sums
+PASS Rate observations never inflate distance or input counts
+PASS Paused samples do not update peaks
+PASS New metrics persist with calibrated scale
+PASS Reload preserves peaks and distance scale
+PASS CSV includes auditable counts, units, scale and peak fields
+PASS v0.1 counters migrate without losing totals; new peaks start at zero
+PASS A full populated rolling hour saves and reloads within storage limits
+PASS Gauge renders zero, tiny, normal and over-range acceleration at DPI scale 1
+PASS Gauge renders zero, tiny, normal and over-range acceleration at DPI scale 1.25
+PASS Gauge renders zero, tiny, normal and over-range acceleration at DPI scale 1.5
+PASS Gauge renders zero, tiny, normal and over-range acceleration at DPI scale 2
+PASS Gauge renders zero, tiny, normal and over-range acceleration at DPI scale 3
+PASS Exactly the five requested cities, with New York first
+PASS New and obsolete city preferences use the New York default
+PASS City IDs are unique and stable for saved preferences
+PASS New York: every node has a place name
+PASS New York: first street checkpoint is exactly 20 m equivalent
+PASS New York: route distances are finite, increasing and city-scale
+PASS New York: 10 m is halfway to the 20 m street, which unlocks at its threshold
+PASS New York: exact completion is shown before the next lap starts
+PASS New York: small and long-distance badges have city context
+PASS Sydney: every node has a place name
+PASS Sydney: first street checkpoint is exactly 20 m equivalent
+PASS Sydney: route distances are finite, increasing and city-scale
+PASS Sydney: 10 m is halfway to the 20 m street, which unlocks at its threshold
+PASS Sydney: exact completion is shown before the next lap starts
+PASS Sydney: small and long-distance badges have city context
+PASS London: every node has a place name
+PASS London: first street checkpoint is exactly 20 m equivalent
+PASS London: route distances are finite, increasing and city-scale
+PASS London: 10 m is halfway to the 20 m street, which unlocks at its threshold
+PASS London: exact completion is shown before the next lap starts
+PASS London: small and long-distance badges have city context
+PASS Moscow: every node has a place name
+PASS Moscow: first street checkpoint is exactly 20 m equivalent
+PASS Moscow: route distances are finite, increasing and city-scale
+PASS Moscow: 10 m is halfway to the 20 m street, which unlocks at its threshold
+PASS Moscow: exact completion is shown before the next lap starts
+PASS Moscow: small and long-distance badges have city context
+PASS Paris: every node has a place name
+PASS Paris: first street checkpoint is exactly 20 m equivalent
+PASS Paris: route distances are finite, increasing and city-scale
+PASS Paris: 10 m is halfway to the 20 m street, which unlocks at its threshold
+PASS Paris: exact completion is shown before the next lap starts
+PASS Paris: small and long-distance badges have city context
+PASS Ten km badges and expanded input achievements retained
+PASS Small-distance badge context changes with the city street
+PASS Submetre distances do not round to a misleading zero
+PASS Traveller progress follows sampled curve length, not sample indices
+PASS Native home is 575 x 472 with one five-city dropdown
+PASS Default city and counters save before the first selection change
+PASS New York: native selector persists the choice without resetting totals
+PASS Sydney: native selector persists the choice without resetting totals
+PASS London: native selector persists the choice without resetting totals
+PASS Moscow: native selector persists the choice without resetting totals
+PASS Paris: native selector persists the choice without resetting totals
+PASS Trek edition never loads or rewrites the old insight file
+PASS Restart retains the selected city and all odometer counts
+PASS v0.3.0 preferences migrate to Trek-only while preserving period and counts
+PASS New saves contain no analytics opt-ins or removed navigation state
+PASS Removed analytics and calendar engines are absent from the built executable
+PASS All five city homes render in all periods, including repeated laps and paused state
+
+109 checks passed.

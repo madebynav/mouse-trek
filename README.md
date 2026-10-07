@@ -1,75 +1,150 @@
-# Pixel Trek
+# 🐭 Pixel Trek
 
-**A tiny native Windows odometer for your cursor, with a live acceleration gauge.**
+**Five cities. One curious mouse. Every little move adds up.**
 
-Count your desktop pixels, key presses and clicks. Watch cursor speed and acceleration. Keep the widget in the corner, collapse it to a slim strip, or hide it in the tray.
+A small native Windows widget that turns your cursor's screen travel into an illustrated city adventure. Follow landmarks, collect distance badges, and see how many pixels, key taps and clicks your day contains.
 
-![Pixel Trek widget with example totals](assets/widget.png)
+![Pixel Trek with illustrative totals](assets/widget.png)
 
-*Preview uses example totals. Kilometres and motion rates are screen equivalents at a configurable pixel density.*
+**Windows 10/11 · Native C# / WinForms · Portable ZIP · MIT license**
 
-## What makes it interesting
+[Features](#features) · [Download and run](#download-and-run) · [Cities](#choose-your-city) · [Build](#build-from-source) · [Contribute](CONTRIBUTING.md)
 
-- **Cursor physics:** smoothed speed and two-dimensional acceleration, including braking and changes of direction. A small native gauge responds to your movement.
-- **Three time windows:** today, rolling last 60 minutes and lifetime distance/counts. Peak speed and acceleration use the same windows.
-- **Transparent units:** raw pixels alongside km equivalents. Use a 96 PPI reference or calculate a screen scale from your monitor dimensions.
-- **A little adventure:** explorer mascot, pixel checkpoints, milestones and best-day records.
-- **Local history you own:** daily CSV export, JSON backup and shareable PNG recap generated on request.
-- **Small native UI:** C# / WinForms / GDI+. No Electron, browser engine, embedded web view, third-party NuGet packages or large asset bundles.
-- **Private by construction:** aggregate counts only. No typed text, stored key sequences, cursor trails, app names or background network calls.
+## Download and run
 
-This is a deliberately narrow Windows utility. It makes everyday desktop activity visible without adding a full dashboard or an account system.
+1. Open this repository's **Releases** section.
+2. Download **`PixelTrek-v0.3.1-Portable.zip`** from the release assets.
+3. Extract the ZIP and open **`PixelTrek.exe`**.
 
-## Run
+No installer, account or browser runtime is needed. Requires **.NET Framework 4.8** on Windows.
 
-Download the portable Windows ZIP from this repository's Releases after a release is published. Extract the whole folder and open `PixelTrek.exe`.
+To update, quit the previous copy before replacing its app files. Your existing odometer totals carry over. GitHub's automatically generated **Source code** downloads contain the project files; choose the **Portable** asset to run the app directly.
 
-Uses .NET Framework 4.8, included in standard Windows 10/11 installations. No installer or administrator access is requested. The current executable is unsigned; Windows and workplace security policies may warn or block it.
+The executable is unsigned, so Windows or workplace security settings may warn or block it. The app requests no administrator elevation.
 
-Right-click the widget or use the three-dot menu. Double-click the tray icon to restore it. Startup at sign-in is optional and off initially.
+## Features
 
-**Update:** quit the old app, replace its executable/configuration files and reopen. Existing v0.1 totals are preserved. New peak-rate records begin when you run v0.2.
+| Feature | What you get |
+|---|---|
+| City treks | Five cities, six labelled stops each, winding trails and a traveller dot |
+| Tiny first steps | A playful 20 m street checkpoint in every city |
+| Cursor odometer | Pixels and kilometre equivalents for Today, Last hour and Lifetime |
+| Taps and clicks | Physical key-tap and mouse-click counts for the same periods |
+| Cursor physics | Live speed, acceleration and saved motion peaks |
+| Distance badges | Ten tiers from 100 m to 100 km, with city-themed home cards |
+| Input achievements | Eleven key-tap tiers and eleven click tiers |
+| Mouse mascot | Exploring while input is active; resting when idle |
+| Small native UI | One home screen, a compact strip and a tray icon |
+| Local exports | Daily CSV, counters backup and a shareable recap PNG |
 
-## Why "km equivalent"?
+The home window is **575 × 472 logical pixels**; compact mode is **575 × 82**.
 
-A screen pixel is a coordinate unit, not a fixed physical length. Pixel Trek stores pixels and uses a selected scale for familiar units:
+## Choose your city
+
+Pick a city from the native dropdown. **New York is the default.** Every node has a place name, and the next stop shows your remaining distance equivalent.
+
+| City | Your illustrated trail |
+|---|---|
+| [New York](assets/new-york.png) | Times Square → Broadway → Bryant Park → Grand Central Terminal → Empire State Building → Central Park |
+| [Sydney](assets/sydney.png) | Circular Quay → Alfred Street → Sydney Opera House → The Rocks → Sydney Harbour Bridge → Sydney Town Hall |
+| [London](assets/london.png) | Trafalgar Square → Whitehall → Big Ben → London Eye → St James's Park → Buckingham Palace |
+| [Moscow](assets/moscow.png) | Red Square → Nikolskaya Street → St Basil's Cathedral → Bolshoi Theatre → Gorky Park → Sparrow Hills |
+| [Paris](assets/paris.png) | Louvre → Rue de Rivoli → Tuileries Garden → Place de la Concorde → Arc de Triomphe → Eiffel Tower |
+
+City changes reuse your lifetime distance without resetting counts. Finish a trail and your mouse starts another virtual lap.
+
+The street stop is a playful **20 m equivalent checkpoint** near the origin. Later stops use cumulative straight-line geographic legs between approximate landmark anchors. The curves and node spacing are illustrations; they are not street navigation or measured walking routes. See [route notes and references](docs/TREKS.md).
+
+## Collect little victories
+
+Distance badges unlock at **100 m, 500 m, 1 km, 2 km, 5 km, 8 km, 10 km, 15 km, 50 km and 100 km equivalents**. The home badge card changes with your city and shows progress toward the next tier.
+
+Your first tiny street adventure:
+
+![Sydney street checkpoint with illustrative totals](assets/first-20m.png)
+
+Open **History, peaks & achievements** for daily totals, motion records and the full key-tap/click achievement ladders.
+
+## Controls
+
+| Control | Action |
+|---|---|
+| City dropdown | Choose your illustrated destination |
+| Today / Last hour / Lifetime | Change the three count cards |
+| Drag the header | Move the widget |
+| Minus button | Collapse or expand |
+| Arrow button | Hide to the tray and keep counting |
+| Double-click the tray icon | Restore the widget |
+| Three dots or right-click | Pause, scale, history, exports and other controls |
+| Quit & save | Save your totals and stop tracking |
+
+## What the units mean
+
+Pixels are the canonical measurement. Converted units describe cursor travel **on screen** at your selected pixels-per-inch reference:
 
 ```text
-metres equivalent = pixels × 0.0254 / pixels_per_inch
-kilometres equivalent = metres equivalent / 1000
+km equivalent   = pixels × 0.0254 / PPI / 1000
+m/s equivalent  = pixels per second × 0.0254 / PPI
+m/s² equivalent = pixels per second squared × 0.0254 / PPI
 ```
 
-At the default **96 PPI reference**, 1,000,000 pixels equals approximately **0.265 km equivalent**. This is a declared convention, not automatic measurement of your display. One factor applies across all monitors and saved history. Changing it recomputes displayed equivalents while retaining pixel totals.
+At the default **96 PPI**, one million pixels is approximately **0.265 km equivalent**. This does not measure physical mouse or trackpad travel. Changing screen scale recalculates the equivalents without changing saved pixels. One scale applies across monitors and history.
 
-Acceleration is sampled from changes in cursor velocity, not from the operating system's mouse-acceleration setting. See [the measurement notes](docs/MEASUREMENT.md) for the sampling and smoothing formulas.
+Acceleration is the smoothed magnitude of changes in cursor velocity, including braking and turns. See [measurement details](docs/MEASUREMENT.md).
 
-## Build and verify
+## Local counts and saved progress
 
-From PowerShell in the extracted source directory:
+Pixel Trek saves aggregate counts, motion peaks and ordinary preferences locally. It does not collect typed text, ordered key sequences, app/process names, calendar data, screen contents or exact cursor trails. This Trek edition contains no workflow, focus or strain analytics engine. There are no network requests or third-party packages.
+
+Your data is stored at:
+
+```text
+%LOCALAPPDATA%\PixelTrek\counters.json
+```
+
+Atomic checkpoints run every ten seconds and on orderly quit, with a previous-save backup. Daily history retains **366 active dates**; lifetime totals remain separate. Last hour is a sliding 60-minute window. A sudden interruption can lose activity since the latest successful checkpoint.
+
+Older v0.3.0 insight files are left untouched and never loaded by this edition. Read [PRIVACY.md](PRIVACY.md) for the complete storage description.
+
+## Build from source
+
+On Windows with .NET Framework 4.8, open PowerShell in the project folder:
 
 ```powershell
 .\Build.ps1
-.\dist\PixelTrek.exe --self-test C:\Temp\PixelTrek-checks
 ```
 
-The build uses the C# compiler supplied with Windows .NET Framework. It needs no SDK or NuGet restore. Test output is written to `test-results.txt` in the selected scratch directory; the process exits with 0 on success. [CONTRIBUTING.md](CONTRIBUTING.md) includes UI preview and smoke-check commands.
+The executable and portable runtime files appear in **`dist`**. No package restore or dependency downloads are required.
 
-The release's verification report separates automated checks from physical-device and multi-monitor testing. Resource figures are measurements from a specific environment, not universal guarantees.
+Run the checks in a new scratch directory:
 
-## Saved data
+```powershell
+$checkDir = Join-Path $env:TEMP ('PixelTrek-checks-' + [Guid]::NewGuid().ToString('N'))
+$run = Start-Process -FilePath '.\dist\PixelTrek.exe' `
+    -ArgumentList '--self-test', ('"' + $checkDir + '"') `
+    -WindowStyle Hidden -Wait -PassThru
+Get-Content (Join-Path $checkDir 'test-results.txt')
+if ($run.ExitCode -ne 0) { throw 'Pixel Trek checks failed.' }
+```
 
-Data is in `%LOCALAPPDATA%\PixelTrek`, separate from the executable. Save checkpoints occur every ten seconds, with a previous-save backup and recovery. Daily history is bounded to 366 active dates; lifetime totals and peaks are retained independently.
+Preview and native smoke commands are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-No cloud services are used. [PRIVACY.md](PRIVACY.md) describes what is briefly held in memory and what is persisted.
+## Verification
+
+The **0.3.1 build passed 109 local checks**, including input counts, persistence, older-save migration, motion formulas, display-scale rendering, city selection and repeated virtual laps. Native previews were inspected for all five cities, and a 25-second startup/save run completed successfully.
+
+That short run sampled **48.4 MiB working-set memory**. It is an observation, not a memory ceiling or long-term benchmark. Physical-device coverage, real mixed-DPI monitors and long-term use need further testing. The GitHub CI workflow is included; no successful GitHub run is claimed before it runs on this repository.
+
+See [VERIFICATION.txt](VERIFICATION.txt) and [test-results.txt](test-results.txt). All preview images use illustrative data.
 
 ## Contribute
 
-Useful contributions include physical-device compatibility reports, mixed-DPI testing, input-path performance measurements, accessibility improvements and measurement corrections. See [CONTRIBUTING.md](CONTRIBUTING.md). Please describe the environment and how to reproduce the result rather than posting private activity data.
+Bug reports, hardware testing, clearer route references and improvements to accessibility or display scaling are welcome. Include reproduction steps and your Windows/display setup when reporting a problem.
 
-If the app helps you, a star makes it easier to find again. Bugs and thoughtful contributions are equally welcome.
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). Keep the widget native, preserve existing totals and keep input callbacks short.
 
-## Authorship and license
+## Credits and license
 
-Created by **Nav Medikonda**, with AI-assisted implementation using OpenAI Codex. Product direction, review, release decisions and maintenance are human responsibilities. See [CREDITS.md](CREDITS.md).
+Created by **Nav Medikonda**, developed with AI assistance from **OpenAI Codex**. The mascot and icon are drawn by the application's code. See [CREDITS.md](CREDITS.md).
 
-MIT licensed. See [LICENSE](LICENSE).
+Released under the **[MIT license](LICENSE)**.
